@@ -7,6 +7,31 @@ from random import randint
 
 SETWND = Tk()
 
+setFrame = Frame(SETWND)
+doneFrame = Frame(SETWND)
+
+launchMS = Button(doneFrame,text="Launch PySweeper",command=SETWND.destroy)
+launchMS.pack()
+
+xLabel = Label(setFrame,text="Size (x,y): ")
+xLabel.grid(row=1,column=1)
+xGet = Spinbox(setFrame,width=2,justify=CENTER)
+xGet.insert(0,13)
+xGet.grid(row=1,column=2)
+
+yLabel = Label(setFrame,text="x")
+yLabel.grid(row=1,column=3)
+yGet = Spinbox(setFrame,width=2,justify=CENTER)
+yGet.insert(0,15)
+yGet.grid(row=1,column=4)
+
+def on_closing():
+    SETWND.destroy()
+    exit(0)
+SETWND.protocol("WM_DELETE_WINDOW", on_closing)
+
+setFrame.pack()
+doneFrame.pack()
 
 SETWND.mainloop()
 
