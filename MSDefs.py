@@ -1,4 +1,4 @@
-from tkinter import *
+from tkinter import Label
 
 class Block:
     def __init__(self,x:int,y:int,images:list,label=Label):
