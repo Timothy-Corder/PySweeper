@@ -17,6 +17,7 @@ class Block:
                 self.label.configure(image=self.images[11])
             else:
                 self.label.configure(image=self.images[10])
+            return self.flagged
     def OpenBlock(self):
         if not self.open:
             self.open = True

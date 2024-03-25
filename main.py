@@ -19,6 +19,7 @@ diffFrame = Frame(SETWND)
 launchMS = Button(doneFrame,text="Launch PySweeper",command=SETWND.destroy)
 launchMS.pack()
 
+diff = IntVar()
 x = StringVar(value=13)
 y = StringVar(value=15)
 
@@ -34,11 +35,11 @@ yGet.grid(row=1,column=4)
 
 diffLabel = Label(diffFrame,text="Difficulty:")
 diffLabel.grid(row=2,column=1)
-diffEasy = Radiobutton(diffFrame,text="Easy")
+diffEasy = Radiobutton(diffFrame,text="Easy", variable=diff, value=0)
 diffEasy.grid(row=1,column=2,sticky=W)
-diffMed = Radiobutton(diffFrame,text="Medium")
+diffMed = Radiobutton(diffFrame,text="Medium", variable=diff, value=1)
 diffMed.grid(row=2,column=2,sticky=W)
-diffHard = Radiobutton(diffFrame,text="Hard")
+diffHard = Radiobutton(diffFrame,text="Hard", variable=diff, value=2)
 diffHard.grid(row=3,column=2,sticky=W)
 
 
@@ -51,6 +52,7 @@ sizeFrame.pack()
 diffFrame.pack()
 doneFrame.pack()
 
+
 SETWND.mainloop()
 
 #----------------------------------------^-Settings Window-^----------------------------------------------
@@ -60,6 +62,7 @@ SETWND.mainloop()
 
 sizeX = int(x.get())
 sizeY = int(y.get())
+difficulty = diff.get()
 
 #----------------------------------------^-Apply Settings-^----------------------------------------------
 
@@ -75,17 +78,39 @@ sprites = []
 tiles = []
 diffLevels = [0.15,0.2,0.25]
 
+showFrame = Frame(WND)
+showFrame.pack()
+
 tileFrame = Frame(WND,width=100,height=100)
 tileFrame.pack()
 
 # Initialize the variables that are reliant on the settings
 dimensions = {"x":sizeX,"y":sizeY}
-mineCount:int = round((dimensions["x"]*dimensions["y"])*0.1)
+mineCount:int = round((dimensions["x"]*dimensions["y"])*diffLevels[difficulty])
+
+mineDisplay = IntVar(value=mineCount,name="mines")
+flagDisplay = IntVar(value=mineCount,name="flags")
+tileDisplay = IntVar(value=((dimensions["x"]*dimensions["y"])-mineCount),name="tiles")
+
+totalMines = Label(showFrame,text="Mines: ")
+totalMines.grid(row=1,column=1)
+mineLabel = Label(showFrame,textvariable=mineDisplay)
+mineLabel.grid(row=1,column=2)
+totalFlags = Label(showFrame,text="Flags Remaining: ")
+totalFlags.grid(row=1,column=3)
+flagLabel = Label(showFrame,textvariable=flagDisplay)
+flagLabel.grid(row=1,column=4)
+totalTiles = Label(showFrame,text="Safe Tiles Remaining: ")
+totalTiles.grid(row=1,column=5)
+tileLabel = Label(showFrame,textvariable=tileDisplay)
+tileLabel.grid(row=1,column=6)
+
 
 #----------Define open_init and Flag early, to bind them to the frame
 
 # Run initialization for Open to get the coordinates, allowing FloodZero() to access Open without needing an event
 def open_init(evnt):
+    global flagDisplay
 
     # Separate the name of the label into its coordinates
     try:
@@ -109,7 +134,14 @@ def Flag(evnt):
     
     # Get the tile based on its coordinates, and toggle its flag state
     tile = (tileName//dimensions.get("y"),tileName%dimensions.get("y"))
-    tiles[tile[0]][tile[1]].FlagToggle()
+    tile = tiles[tile[0]][tile[1]]
+    if (flagDisplay.get()<1) and not tile.flagged and not tile.open:
+        return None
+    flagged = tile.FlagToggle()
+    if flagged:
+        flagDisplay.set(flagDisplay.get()-1)
+    else:
+        flagDisplay.set(flagDisplay.get()+1)
 
 
 
@@ -178,11 +210,16 @@ def Open(x,y):
 
     # Get the tile by the provided coordinates and open it through Block.OpenBlock()
     tile = tiles[x][y]
+    if not tile.open:
+        tileDisplay.set(tileDisplay.get()-1)
+
     mine = tile.OpenBlock()
 
     # If it's a mine, you lose, so run Disable()
     if mine:
+        tileDisplay.set(tileDisplay.get()+1)
         Disable()
+        tile.label.configure(image=sprites[12])
 
     # If a tile has zero neighbors that are mines, then the 8 tiles surrounding it must be safe
     if tile.mineNeighbors == 0:
@@ -194,7 +231,7 @@ def MakeTile(x,y):
 
     # Define a label and apply it to a grid
     lbl = Label(tileFrame,image=sprites[10],borderwidth=0)
-    lbl.grid(column=x+1,row=y+2)
+    lbl.grid(column=x+1,row=y+1)
 
     # Create a Block object and return it
     tile = Block(x,y,sprites,lbl)
@@ -227,7 +264,7 @@ def AddMine():
 
 
 
-for i in range(12): #There are 12 sprites for the buttons
+for i in range(13): #There are 13 sprites for the buttons
 
     # Iteratively append the sprites to btnImg so that they can all be accessed easily
     sprites.append(PhotoImage(file=f".\\assets\\button\\sprite_{i}.png"))
@@ -258,6 +295,10 @@ for column in tiles:
         
         # Pre-calculate the number of mines are surrounding the tile, then add that to the Block object
         tile.mineNeighbors = CalculateNeighbors(tiles.index(column),column.index(tile))
+
+
+def WinGame():
+    pass
 
 
 # Start the main program loop
