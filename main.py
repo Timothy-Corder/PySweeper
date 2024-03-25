@@ -7,35 +7,62 @@ from random import randint
 
 SETWND = Tk()
 
-setFrame = Frame(SETWND)
+def only_numbers(char:str):
+    return char.isdigit()
+    
+validation = SETWND.register(only_numbers)
+
+sizeFrame = Frame(SETWND)
 doneFrame = Frame(SETWND)
+diffFrame = Frame(SETWND)
 
 launchMS = Button(doneFrame,text="Launch PySweeper",command=SETWND.destroy)
 launchMS.pack()
 
-xLabel = Label(setFrame,text="Size (x,y): ")
+x = StringVar(value=13)
+y = StringVar(value=15)
+
+xLabel = Label(sizeFrame,text="Size (x,y): ")
 xLabel.grid(row=1,column=1)
-xGet = Spinbox(setFrame,width=2,justify=CENTER)
-xGet.insert(0,13)
+xGet = Spinbox(sizeFrame,width=2,validate="key",justify=CENTER,validatecommand=(validation, '%S'),from_=2,to=30,textvariable=x)
 xGet.grid(row=1,column=2)
 
-yLabel = Label(setFrame,text="x")
+yLabel = Label(sizeFrame,text="x")
 yLabel.grid(row=1,column=3)
-yGet = Spinbox(setFrame,width=2,justify=CENTER)
-yGet.insert(0,15)
+yGet = Spinbox(sizeFrame,width=2,validate="key",justify=CENTER,validatecommand=(validation, '%S'),from_=2,to=30,textvariable=y)
 yGet.grid(row=1,column=4)
+
+diffLabel = Label(diffFrame,text="Difficulty:")
+diffLabel.grid(row=2,column=1)
+diffEasy = Radiobutton(diffFrame,text="Easy")
+diffEasy.grid(row=1,column=2,sticky=W)
+diffMed = Radiobutton(diffFrame,text="Medium")
+diffMed.grid(row=2,column=2,sticky=W)
+diffHard = Radiobutton(diffFrame,text="Hard")
+diffHard.grid(row=3,column=2,sticky=W)
+
 
 def on_closing():
     SETWND.destroy()
     exit(0)
 SETWND.protocol("WM_DELETE_WINDOW", on_closing)
 
-setFrame.pack()
+sizeFrame.pack()
+diffFrame.pack()
 doneFrame.pack()
 
 SETWND.mainloop()
 
 #----------------------------------------^-Settings Window-^----------------------------------------------
+
+
+#----------------------------------------v-Apply Settings-v----------------------------------------------
+
+sizeX = int(x.get())
+sizeY = int(y.get())
+
+#----------------------------------------^-Apply Settings-^----------------------------------------------
+
 
 #----------------------------------------v-Main Window Code-v----------------------------------------------
 
@@ -46,12 +73,13 @@ WND.title("PySweeper")
 # Initialize the variables that aren't reliant on the settings
 sprites = []
 tiles = []
+diffLevels = [0.15,0.2,0.25]
 
 tileFrame = Frame(WND,width=100,height=100)
 tileFrame.pack()
 
 # Initialize the variables that are reliant on the settings
-dimensions = {"x":12,"y":15}
+dimensions = {"x":sizeX,"y":sizeY}
 mineCount:int = round((dimensions["x"]*dimensions["y"])*0.1)
 
 #----------Define open_init and Flag early, to bind them to the frame
@@ -132,17 +160,18 @@ def FloodZero(x,y):
             targetx = x+(i-1)
             targety = y+(j-1)
 
-            # Only run if the target tile hasn't already been opened, to prevent an infinite recursion error
-            target = tiles[targetx][targety]
-            
-            if targetx>-1 and targety>-1 and not target.open:
-                try:
-                    Open(targetx,targety)
-                except IndexError:
-                    # Prevents the fill from trying to go outside the bounds of the tiles
-                    pass
-                except RecursionError:
-                    pass
+            try:
+                # Only run if the target tile hasn't already been opened, to prevent an infinite recursion error
+                target = tiles[targetx][targety]
+                
+                if targetx>-1 and targety>-1 and not target.open:
+                        Open(targetx,targety)
+            except IndexError:
+                # Prevents the fill from trying to go outside the bounds of the tiles
+                pass
+            except RecursionError:
+                # If the foll hits infinite recursion anyway, just carry on
+                pass
 
 #Define Open as a function separate to Block.OpenBlock() so that it can access FloodZero()
 def Open(x,y):
