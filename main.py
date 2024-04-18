@@ -111,37 +111,51 @@ tileLabel.grid(row=1,column=6)
 # Run initialization for Open to get the coordinates, allowing FloodZero() to access Open without needing an event
 def open_init(evnt):
     global flagDisplay
-
-    # Separate the name of the label into its coordinates
     try:
-        tileName = int(evnt.widget._name.removeprefix('!label'))-1
-    except:
-        # If it fails, then the label doesn't have a number attached, meaning it has to be the first label
-        tileName = 0
+        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == ".!frame2":
+        # Separate the name of the label into its coordinates
+            try:
+                    tileName = int(evnt.widget._name.removeprefix('!label'))-1
+            except:
+                # If it fails, then the label doesn't have a number attached, meaning it has to be the first label
+                tileName = 0
+        else:
+            return None
+    except AttributeError:
+        return None
     
     # Select the tile by its coordinates, and open it with Open()
     tile = (tileName//dimensions.get("y"),tileName%dimensions.get("y"))
     Open(tile[0],tile[1])
 
-def Flag(evnt):
+gameOver = False
 
+def Flag(evnt):
     # Separate the name of the label into its coordinates
     try:
-        tileName = int(evnt.widget._name.removeprefix('!label'))-1
-    except:
-        # If it fails, then the label doesn't have a number attached, meaning it has to be the first label
-        tileName = 0
+        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == ".!frame2":
+        # Separate the name of the label into its coordinates
+            try:
+                    tileName = int(evnt.widget._name.removeprefix('!label'))-1
+            except:
+                # If it fails, then the label doesn't have a number attached, meaning it has to be the first label
+                tileName = 0
+        else:
+            return None
+    except AttributeError:
+        return None
     
     # Get the tile based on its coordinates, and toggle its flag state
     tile = (tileName//dimensions.get("y"),tileName%dimensions.get("y"))
     tile = tiles[tile[0]][tile[1]]
-    if (flagDisplay.get()<1) and not tile.flagged and not tile.open:
+    if (flagDisplay.get()<1) and not tile.flagged and not tile.open and not gameOver:
         return None
     flagged = tile.FlagToggle()
-    if flagged:
-        flagDisplay.set(flagDisplay.get()-1)
-    else:
-        flagDisplay.set(flagDisplay.get()+1)
+    if not gameOver:
+        if flagged:
+            flagDisplay.set(flagDisplay.get()-1)
+        else:
+            flagDisplay.set(flagDisplay.get()+1)
 
 
 
@@ -207,9 +221,12 @@ def FloodZero(x,y):
 
 #Define Open as a function separate to Block.OpenBlock() so that it can access FloodZero()
 def Open(x,y):
+    global flagDisplay
 
     # Get the tile by the provided coordinates and open it through Block.OpenBlock()
     tile = tiles[x][y]
+    if tile.flagged:
+        flagDisplay.set(flagDisplay.get()+1)
     if not tile.open:
         tileDisplay.set(tileDisplay.get()-1)
 
@@ -238,6 +255,9 @@ def MakeTile(x,y):
     return tile
 
 def Disable():
+    global gameOver
+
+    gameOver = True
 
     # Disable clicking for all the tiles by opening them
     for column in tiles:
