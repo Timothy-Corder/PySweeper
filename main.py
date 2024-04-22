@@ -20,8 +20,8 @@ launchMS = Button(doneFrame,text="Launch PySweeper",command=SETWND.destroy)
 launchMS.pack()
 
 diff = IntVar()
-x = StringVar(value=13)
-y = StringVar(value=15)
+x = StringVar(value=23)
+y = StringVar(value=25)
 
 xLabel = Label(sizeFrame,text="Size (x,y): ")
 xLabel.grid(row=1,column=1)
@@ -75,6 +75,7 @@ WND.title("PySweeper")
 
 # Initialize the variables that aren't reliant on the settings
 sprites = []
+emi = []
 tiles = []
 diffLevels = [0.15,0.2,0.25]
 
@@ -97,13 +98,13 @@ totalMines.grid(row=1,column=1)
 mineLabel = Label(showFrame,textvariable=mineDisplay)
 mineLabel.grid(row=1,column=2)
 totalFlags = Label(showFrame,text="Flags Remaining: ")
-totalFlags.grid(row=1,column=3)
+totalFlags.grid(row=2,column=1)
 flagLabel = Label(showFrame,textvariable=flagDisplay)
-flagLabel.grid(row=1,column=4)
+flagLabel.grid(row=2,column=2)
 totalTiles = Label(showFrame,text="Safe Tiles Remaining: ")
-totalTiles.grid(row=1,column=5)
+totalTiles.grid(row=3,column=1)
 tileLabel = Label(showFrame,textvariable=tileDisplay)
-tileLabel.grid(row=1,column=6)
+tileLabel.grid(row=3,column=2)
 
 
 #----------Define open_init and Flag early, to bind them to the frame
@@ -287,7 +288,10 @@ def AddMine():
 for i in range(13): #There are 13 sprites for the buttons
 
     # Iteratively append the sprites to btnImg so that they can all be accessed easily
-    sprites.append(PhotoImage(file=f".\\assets\\button\\sprite_{i}.png"))
+    sprites.append(PhotoImage(file=".\\assets\\button\\button_%02d.png" % i))
+
+for i in range(4): #Emi has 4 sprites
+    emi.append(PhotoImage(file=".\\assets\\face\\emi_%d.png" % i))
 
 # Iterate through the columns
 for i in range(dimensions.get("x")):
