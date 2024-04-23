@@ -1,77 +1,25 @@
 from MSDefs import Block
 from tkinter import *
 from random import randint
-
-
-#----------------------------------------v-Settings Window-v------------------------------------------------
-
-SETWND = Tk()
-
-def only_numbers(char:str):
-    return char.isdigit()
-    
-validation = SETWND.register(only_numbers)
-
-sizeFrame = Frame(SETWND)
-doneFrame = Frame(SETWND)
-diffFrame = Frame(SETWND)
-
-launchMS = Button(doneFrame,text="Launch PySweeper",command=SETWND.destroy)
-launchMS.pack()
-
-diff = IntVar()
-x = StringVar(value=23)
-y = StringVar(value=25)
-
-xLabel = Label(sizeFrame,text="Size (x,y): ")
-xLabel.grid(row=1,column=1)
-xGet = Spinbox(sizeFrame,width=2,validate="key",justify=CENTER,validatecommand=(validation, '%S'),from_=2,to=30,textvariable=x)
-xGet.grid(row=1,column=2)
-
-yLabel = Label(sizeFrame,text="x")
-yLabel.grid(row=1,column=3)
-yGet = Spinbox(sizeFrame,width=2,validate="key",justify=CENTER,validatecommand=(validation, '%S'),from_=2,to=30,textvariable=y)
-yGet.grid(row=1,column=4)
-
-diffLabel = Label(diffFrame,text="Difficulty:")
-diffLabel.grid(row=2,column=1)
-diffEasy = Radiobutton(diffFrame,text="Easy", variable=diff, value=0)
-diffEasy.grid(row=1,column=2,sticky=W)
-diffMed = Radiobutton(diffFrame,text="Medium", variable=diff, value=1)
-diffMed.grid(row=2,column=2,sticky=W)
-diffHard = Radiobutton(diffFrame,text="Hard", variable=diff, value=2)
-diffHard.grid(row=3,column=2,sticky=W)
-
-
-def on_closing():
-    SETWND.destroy()
-    exit(0)
-SETWND.protocol("WM_DELETE_WINDOW", on_closing)
-
-sizeFrame.pack()
-diffFrame.pack()
-doneFrame.pack()
-
-
-SETWND.mainloop()
-
-#----------------------------------------^-Settings Window-^----------------------------------------------
-
-
-#----------------------------------------v-Apply Settings-v----------------------------------------------
-
-sizeX = int(x.get())
-sizeY = int(y.get())
-difficulty = diff.get()
-
-#----------------------------------------^-Apply Settings-^----------------------------------------------
-
+import SettingsWin as settings
 
 #----------------------------------------v-Main Window Code-v----------------------------------------------
 
+if __name__ == "__main__":
+    WND = Tk()
+
+def main():
+    global WND
+    WND.title("PySweeper")
+
+    WND.mainloop()
+
+#----------------------------------------^-Main Window Code-^----------------------------------------------
+
+#--------------------------------------------v-Functions-v-------------------------------------------------
+
+
 #Create the game window
-WND = Tk()
-WND.title("PySweeper")
 
 # Initialize the variables that aren't reliant on the settings
 sprites = []
@@ -86,25 +34,16 @@ tileFrame = Frame(WND,width=100,height=100)
 tileFrame.pack()
 
 # Initialize the variables that are reliant on the settings
-dimensions = {"x":sizeX,"y":sizeY}
-mineCount:int = round((dimensions["x"]*dimensions["y"])*diffLevels[difficulty])
+dimensions = {"x":settings.SIZEX,"y":settings.SIZEY}
+mineCount:int = round((dimensions["x"]*dimensions["y"])*diffLevels[settings.DIFFICULTY])
+safe = (dimensions["x"]*dimensions["y"])-mineCount
 
-mineDisplay = IntVar(value=mineCount,name="mines")
 flagDisplay = IntVar(value=mineCount,name="flags")
-tileDisplay = IntVar(value=((dimensions["x"]*dimensions["y"])-mineCount),name="tiles")
 
-totalMines = Label(showFrame,text="Mines: ")
-totalMines.grid(row=1,column=1)
-mineLabel = Label(showFrame,textvariable=mineDisplay)
-mineLabel.grid(row=1,column=2)
 totalFlags = Label(showFrame,text="Flags Remaining: ")
 totalFlags.grid(row=2,column=1)
 flagLabel = Label(showFrame,textvariable=flagDisplay)
 flagLabel.grid(row=2,column=2)
-totalTiles = Label(showFrame,text="Safe Tiles Remaining: ")
-totalTiles.grid(row=3,column=1)
-tileLabel = Label(showFrame,textvariable=tileDisplay)
-tileLabel.grid(row=3,column=2)
 
 
 #----------Define open_init and Flag early, to bind them to the frame
@@ -228,14 +167,11 @@ def Open(x,y):
     tile = tiles[x][y]
     if tile.flagged:
         flagDisplay.set(flagDisplay.get()+1)
-    if not tile.open:
-        tileDisplay.set(tileDisplay.get()-1)
 
     mine = tile.OpenBlock()
 
     # If it's a mine, you lose, so run Disable()
     if mine:
-        tileDisplay.set(tileDisplay.get()+1)
         Disable()
         tile.label.configure(image=sprites[12])
 
@@ -329,4 +265,3 @@ def WinGame():
 WND.mainloop()
 
 
-#----------------------------------------^-Main Window Code-^----------------------------------------------
