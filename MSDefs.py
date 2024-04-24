@@ -1,5 +1,20 @@
 from tkinter import Label
 
+class Emi:
+    def __init__(self,sprites:list,label=Label):
+        self.sprites = sprites
+        self.label = label
+    def switch(self,face):
+        self.label.configure(image=self.sprites[face])
+    def happy(self):
+        self.switch(0)
+    def interest(self):
+        self.switch(1)
+    def joy(self):
+        self.switch(2)
+    def dead(self):
+        self.switch(3)
+
 class Block:
     def __init__(self,x:int,y:int,images:list,label=Label):
         self.x = x

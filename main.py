@@ -1,13 +1,13 @@
-from MSDefs import Block
+from MSDefs import Block, Emi
 from tkinter import *
 from random import randint
 import SettingsWin
-SIZEX,SIZEY,DIFFICULTY = SettingsWin.SettingsWindow()
 
 
 #----------------------------------------v-Main Window Code-v----------------------------------------------
 
 if __name__ == "__main__":
+    SIZEX,SIZEY,DIFFICULTY = SettingsWin.SettingsWindow()
     WND = Tk()
 
 
@@ -29,7 +29,7 @@ def main():
 
 gameOver = False
 sprites = []
-emi = []
+emi = Emi([],Label)
 tiles = []
 diffLevels = [0.15, 0.2, 0.25]
 showFrame = None
@@ -59,6 +59,8 @@ def MakeInterface():
 
     totalFlags = Label(showFrame,text="Flags Remaining: ")
     totalFlags.grid(row=2,column=1)
+    emi = Emi([],Label(showFrame))
+    emi.label.grid(row=1,column=1)
     flagLabel = Label(showFrame,textvariable=flagDisplay)
     flagLabel.grid(row=2,column=2)
     # Bind the required functions to the frame, which will be inherited by the tiles
@@ -114,6 +116,7 @@ def Flag(evnt):
     if not tile.open and not gameOver:
         if flagged:
             flagDisplay.set(flagDisplay.get()-1)
+            CheckWin()
         else:
             flagDisplay.set(flagDisplay.get()+1)
 
@@ -173,12 +176,14 @@ def FloodZero(x,y):
 
 #Define Open as a function separate to Block.OpenBlock() so that it can access FloodZero()
 def Open(x,y):
-    global flagDisplay
+    global flagDisplay,safe
 
     # Get the tile by the provided coordinates and open it through Block.OpenBlock()
     tile = tiles[x][y]
     if tile.flagged:
         flagDisplay.set(flagDisplay.get()+1)
+    if not tile.open:
+        safe-=1
 
     mine = tile.OpenBlock()
 
@@ -192,6 +197,12 @@ def Open(x,y):
 
         # So run FloodZero()
         FloodZero(x,y)
+    CheckWin()
+
+def CheckWin():
+    global flagDisplay,safe
+    if (safe < 1 and flagDisplay.get() == 0):
+        WinGame()
 
 def MakeTile(x,y):
     global tileFrame, sprites
@@ -239,7 +250,8 @@ def GetSprites():
         sprites.append(PhotoImage(file=".\\assets\\button\\button_%02d.png" % i))
 
     for i in range(4): #Emi has 4 sprites
-        emi.append(PhotoImage(file=".\\assets\\face\\emi_%d.png" % i))
+        emi.sprites.append(PhotoImage(file=".\\assets\\face\\emi_%d.png" % i))
+    emi.happy()
 
 def MakeGrid():
     # Iterate through the columns
@@ -271,9 +283,9 @@ def MakeGrid():
 
 #--------------------------------------------^-Functions-^-------------------------------------------------
 
-
 def WinGame():
-    pass
+    print("Victory!")
+
 
 
 # Start the main program loop
