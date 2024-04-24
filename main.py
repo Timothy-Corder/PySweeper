@@ -1,52 +1,74 @@
 from MSDefs import Block
 from tkinter import *
 from random import randint
-import SettingsWin as settings
+import SettingsWin
+SIZEX,SIZEY,DIFFICULTY = SettingsWin.SettingsWindow()
+
 
 #----------------------------------------v-Main Window Code-v----------------------------------------------
 
 if __name__ == "__main__":
     WND = Tk()
 
+
 def main():
     global WND
+
+    MakeInterface()
+    GetSprites()
+    MakeGrid()
+
     WND.title("PySweeper")
 
     WND.mainloop()
 
 #----------------------------------------^-Main Window Code-^----------------------------------------------
 
-#--------------------------------------------v-Functions-v-------------------------------------------------
 
+#----------------------------------------v-Global Variables-v----------------------------------------------
 
-#Create the game window
-
-# Initialize the variables that aren't reliant on the settings
+gameOver = False
 sprites = []
 emi = []
 tiles = []
-diffLevels = [0.15,0.2,0.25]
+diffLevels = [0.15, 0.2, 0.25]
+showFrame = None
+tileFrame = None
+dimensions = {"x": SIZEX, "y": SIZEY}
+mineCount = round((dimensions["x"] * dimensions["y"]) * diffLevels[DIFFICULTY])
+safe = (dimensions["x"] * dimensions["y"]) - mineCount
+flagDisplay = None
+flagLabel = None
+totalFlags = None
 
-showFrame = Frame(WND)
-showFrame.pack()
-
-tileFrame = Frame(WND,width=100,height=100)
-tileFrame.pack()
-
-# Initialize the variables that are reliant on the settings
-dimensions = {"x":settings.SIZEX,"y":settings.SIZEY}
-mineCount:int = round((dimensions["x"]*dimensions["y"])*diffLevels[settings.DIFFICULTY])
-safe = (dimensions["x"]*dimensions["y"])-mineCount
-
-flagDisplay = IntVar(value=mineCount,name="flags")
-
-totalFlags = Label(showFrame,text="Flags Remaining: ")
-totalFlags.grid(row=2,column=1)
-flagLabel = Label(showFrame,textvariable=flagDisplay)
-flagLabel.grid(row=2,column=2)
+#----------------------------------------^-Global Variables-^----------------------------------------------
 
 
-#----------Define open_init and Flag early, to bind them to the frame
+#----------------------------------------v-----Interface----v----------------------------------------------
+
+def MakeInterface():
+    global showFrame,tileFrame,flagDisplay,flagLabel
+
+    showFrame = Frame(WND)
+    showFrame.pack()
+
+    tileFrame = Frame(WND,width=100,height=100)
+    tileFrame.pack()
+
+    flagDisplay = IntVar(value=mineCount,name="flags")
+
+    totalFlags = Label(showFrame,text="Flags Remaining: ")
+    totalFlags.grid(row=2,column=1)
+    flagLabel = Label(showFrame,textvariable=flagDisplay)
+    flagLabel.grid(row=2,column=2)
+    # Bind the required functions to the frame, which will be inherited by the tiles
+    tileFrame.bind_all("<Button-1>",open_init)
+    tileFrame.bind_all("<Button-3>",Flag)
+
+#----------------------------------------^-----Interface----^----------------------------------------------
+
+
+#--------------------------------------------v-Functions-v-------------------------------------------------
 
 # Run initialization for Open to get the coordinates, allowing FloodZero() to access Open without needing an event
 def open_init(evnt):
@@ -68,15 +90,13 @@ def open_init(evnt):
     tile = (tileName//dimensions.get("y"),tileName%dimensions.get("y"))
     Open(tile[0],tile[1])
 
-gameOver = False
-
 def Flag(evnt):
     # Separate the name of the label into its coordinates
     try:
         if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == ".!frame2":
         # Separate the name of the label into its coordinates
             try:
-                    tileName = int(evnt.widget._name.removeprefix('!label'))-1
+                tileName = int(evnt.widget._name.removeprefix('!label'))-1
             except:
                 # If it fails, then the label doesn't have a number attached, meaning it has to be the first label
                 tileName = 0
@@ -88,22 +108,14 @@ def Flag(evnt):
     # Get the tile based on its coordinates, and toggle its flag state
     tile = (tileName//dimensions.get("y"),tileName%dimensions.get("y"))
     tile = tiles[tile[0]][tile[1]]
-    if (flagDisplay.get()<1) and not tile.flagged and not tile.open and not gameOver:
+    if tile.open or gameOver:
         return None
     flagged = tile.FlagToggle()
-    if not gameOver:
+    if not tile.open and not gameOver:
         if flagged:
             flagDisplay.set(flagDisplay.get()-1)
         else:
             flagDisplay.set(flagDisplay.get()+1)
-
-
-
-# Bind the required functions to the frame, which will be inherited by the tiles
-tileFrame.bind_all("<Button-1>",open_init)
-tileFrame.bind_all("<Button-3>",Flag)
-
-
 
 def CalculateNeighbors(x,y):
     # Calculate the number of mines surrounding the block at the given coordinates
@@ -182,6 +194,7 @@ def Open(x,y):
         FloodZero(x,y)
 
 def MakeTile(x,y):
+    global tileFrame, sprites
 
     # Define a label and apply it to a grid
     lbl = Label(tileFrame,image=sprites[10],borderwidth=0)
@@ -219,42 +232,44 @@ def AddMine():
         AddMine()
         # NOTE: Could lead to a recursion bug if there are more mines than tiles
 
+def GetSprites():
+    for i in range(13): #There are 13 sprites for the buttons
 
+        # Iteratively append the sprites to btnImg so that they can all be accessed easily
+        sprites.append(PhotoImage(file=".\\assets\\button\\button_%02d.png" % i))
 
-for i in range(13): #There are 13 sprites for the buttons
+    for i in range(4): #Emi has 4 sprites
+        emi.append(PhotoImage(file=".\\assets\\face\\emi_%d.png" % i))
 
-    # Iteratively append the sprites to btnImg so that they can all be accessed easily
-    sprites.append(PhotoImage(file=".\\assets\\button\\button_%02d.png" % i))
+def MakeGrid():
+    # Iterate through the columns
+    for i in range(dimensions.get("x")):
 
-for i in range(4): #Emi has 4 sprites
-    emi.append(PhotoImage(file=".\\assets\\face\\emi_%d.png" % i))
+        # Empty the column list before each iteration
+        tileColumn = []
 
-# Iterate through the columns
-for i in range(dimensions.get("x")):
+        # Iterate through the rows
+        for j in range(dimensions.get("y")):
 
-    # Empty the column list before each iteration
-    tileColumn = []
+            # Create a tile and append it to the column list
+            tileColumn.append(MakeTile(i,j))
+        # Add the column list to the blocks[] list, creating a 2D list that can be accessed through coordinates
+        tiles.append(tileColumn)
 
-    # Iterate through the rows
-    for j in range(dimensions.get("y")):
+    for i in range(mineCount):
 
-        # Create a tile and append it to the column list
-        tileColumn.append(MakeTile(i,j))
-    # Add the column list to the blocks[] list, creating a 2D list that can be accessed through coordinates
-    tiles.append(tileColumn)
+        # Create the number of mines dictated by the mineCount variable
+        AddMine()
 
-for i in range(mineCount):
-
-    # Create the number of mines dictated by the mineCount variable
-    AddMine()
-
-for column in tiles:
-    
-    # Iterating through a 2D list
-    for tile in column:
+    for column in tiles:
         
-        # Pre-calculate the number of mines are surrounding the tile, then add that to the Block object
-        tile.mineNeighbors = CalculateNeighbors(tiles.index(column),column.index(tile))
+        # Iterating through a 2D list
+        for tile in column:
+            
+            # Pre-calculate the number of mines are surrounding the tile, then add that to the Block object
+            tile.mineNeighbors = CalculateNeighbors(tiles.index(column),column.index(tile))
+
+#--------------------------------------------^-Functions-^-------------------------------------------------
 
 
 def WinGame():
@@ -262,6 +277,4 @@ def WinGame():
 
 
 # Start the main program loop
-WND.mainloop()
-
-
+main()
