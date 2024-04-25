@@ -10,17 +10,32 @@ if __name__ == "__main__":
     SIZEX,SIZEY,DIFFICULTY = SettingsWin.SettingsWindow()
     WND = Tk()
 
+def PlayAgain():
+    global WND,sprites,emi,tiles,dimensions,mineCount,SIZEX,SIZEY,DIFFICULTY
+
+    SIZEX,SIZEY,DIFFICULTY = SettingsWin.SettingsWindow()
+
+    dimensions = {"x": SIZEX, "y": SIZEY}
+    mineCount = round((dimensions["x"] * dimensions["y"]) * diffLevels[DIFFICULTY])
+
+    sprites = []
+    emi = Emi([],Frame,StringVar,Label)
+    tiles = [] 
+    
+    WND = Tk()
+    main()
 
 def main():
     global WND
 
     MakeInterface()
-    GetSprites()
     MakeGrid()
 
     WND.title("PySweeper")
 
     WND.mainloop()
+    PlayAgain()
+    
 
 #----------------------------------------^-Main Window Code-^----------------------------------------------
 
@@ -29,25 +44,32 @@ def main():
 
 gameOver = False
 sprites = []
-emi = Emi([],Label)
+emi = Emi([],Frame,StringVar,Label)
 tiles = []
 diffLevels = [0.15, 0.2, 0.25]
 showFrame = None
 tileFrame = None
+emiFrame = None
 dimensions = {"x": SIZEX, "y": SIZEY}
 mineCount = round((dimensions["x"] * dimensions["y"]) * diffLevels[DIFFICULTY])
 safe = (dimensions["x"] * dimensions["y"]) - mineCount
 flagDisplay = None
 flagLabel = None
 totalFlags = None
-
+ 
 #----------------------------------------^-Global Variables-^----------------------------------------------
 
 
 #----------------------------------------v-----Interface----v----------------------------------------------
 
 def MakeInterface():
-    global showFrame,tileFrame,flagDisplay,flagLabel
+    global showFrame,tileFrame,flagDisplay,flagLabel,emi,sprites
+    
+    emi = Emi([],Frame(),StringVar(),Label())
+    emi.frame = Frame(WND)
+    emi.label = Label(emi.frame)
+    
+    emi.frame.pack()
 
     showFrame = Frame(WND)
     showFrame.pack()
@@ -58,14 +80,17 @@ def MakeInterface():
     flagDisplay = IntVar(value=mineCount,name="flags")
 
     totalFlags = Label(showFrame,text="Flags Remaining: ")
-    totalFlags.grid(row=2,column=1)
-    emi = Emi([],Label(showFrame))
+    totalFlags.grid(row=3,column=1)
     emi.label.grid(row=1,column=1)
+    emiSpeech = Label(emi.frame,textvariable=emi.speech)
+    emiSpeech.grid(row=2,column=1)
+    GetSprites()
     flagLabel = Label(showFrame,textvariable=flagDisplay)
-    flagLabel.grid(row=2,column=2)
+    flagLabel.grid(row=3,column=3)
     # Bind the required functions to the frame, which will be inherited by the tiles
-    tileFrame.bind_all("<Button-1>",open_init)
+    tileFrame.bind_all("<Button-1>",OpenInit)
     tileFrame.bind_all("<Button-3>",Flag)
+    emi.happy()
 
 #----------------------------------------^-----Interface----^----------------------------------------------
 
@@ -73,10 +98,13 @@ def MakeInterface():
 #--------------------------------------------v-Functions-v-------------------------------------------------
 
 # Run initialization for Open to get the coordinates, allowing FloodZero() to access Open without needing an event
-def open_init(evnt):
+def OpenInit(evnt):
     global flagDisplay
+    emi.speak("Testing! :)")
+    print(evnt,evnt.widget)
     try:
-        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == ".!frame2":
+        print(evnt.widget.winfo_parent(),tileFrame.winfo_name())
+        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == "."+tileFrame.winfo_name():
         # Separate the name of the label into its coordinates
             try:
                     tileName = int(evnt.widget._name.removeprefix('!label'))-1
@@ -95,7 +123,7 @@ def open_init(evnt):
 def Flag(evnt):
     # Separate the name of the label into its coordinates
     try:
-        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == ".!frame2":
+        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == "."+tileFrame.winfo_name():
         # Separate the name of the label into its coordinates
             try:
                 tileName = int(evnt.widget._name.removeprefix('!label'))-1
@@ -176,7 +204,7 @@ def FloodZero(x,y):
 
 #Define Open as a function separate to Block.OpenBlock() so that it can access FloodZero()
 def Open(x,y):
-    global flagDisplay,safe
+    global flagDisplay,safe,emi
 
     # Get the tile by the provided coordinates and open it through Block.OpenBlock()
     tile = tiles[x][y]
@@ -197,6 +225,14 @@ def Open(x,y):
 
         # So run FloodZero()
         FloodZero(x,y)
+    
+    if tile.mineNeighbors > 3:
+        emi.interest()
+        emi.speak("Eek!")
+    else:
+        emi.happy()
+
+
     CheckWin()
 
 def CheckWin():
@@ -221,6 +257,8 @@ def Disable():
     gameOver = True
 
     # Disable clicking for all the tiles by opening them
+    emi.dead()
+    emi.speak("*dies*")
     for column in tiles:
         for tile in column:
 
@@ -251,7 +289,6 @@ def GetSprites():
 
     for i in range(4): #Emi has 4 sprites
         emi.sprites.append(PhotoImage(file=".\\assets\\face\\emi_%d.png" % i))
-    emi.happy()
 
 def MakeGrid():
     # Iterate through the columns
@@ -285,6 +322,7 @@ def MakeGrid():
 
 def WinGame():
     print("Victory!")
+    emi.joy()
 
 
 
