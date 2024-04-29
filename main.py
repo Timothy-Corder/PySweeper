@@ -100,7 +100,6 @@ def MakeInterface():
 # Run initialization for Open to get the coordinates, allowing FloodZero() to access Open without needing an event
 def OpenInit(evnt):
     global flagDisplay
-    emi.speak("Testing! :)")
     print(evnt,evnt.widget)
     try:
         print(evnt.widget.winfo_parent(),tileFrame.winfo_name())
