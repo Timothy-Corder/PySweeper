@@ -16,8 +16,11 @@ class Emi:
     def joy(self):
         self.switch(2)
     def dead(self):
-        print("dead")
         self.switch(3)
+    def nervous(self):
+        self.switch(4)
+    def shock(self):
+        self.switch(5)
     def speak(self,text:str):
         self.speech.set(value="Emi: "+text)
 
