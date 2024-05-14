@@ -2,6 +2,7 @@ from MSDefs import Block, Emi
 from tkinter import *
 from random import randint
 import SettingsWin
+import datetime
 
 
 #----------------------------------------v-Main Window Code-v----------------------------------------------
@@ -10,44 +11,73 @@ if __name__ == "__main__":
     SIZEX,SIZEY,DIFFICULTY = SettingsWin.SettingsWindow()
     WND = Tk()
 
+def PlayAgain():
+    global WND,sprites,emi,tiles,dimensions,mineCount,SIZEX,SIZEY,DIFFICULTY,gameOver
+
+    SIZEX,SIZEY,DIFFICULTY = SettingsWin.SettingsWindow()
+
+    dimensions = {"x": SIZEX, "y": SIZEY}
+    mineCount = round((dimensions["x"] * dimensions["y"]) * diffLevels[DIFFICULTY])
+
+    sprites = []
+    emi = Emi([],Frame,StringVar,Label)
+    tiles = [] 
+    gameOver = False
+    
+    WND = Tk()
+    main()
 
 def main():
     global WND
 
     MakeInterface()
-    GetSprites()
     MakeGrid()
 
     WND.title("PySweeper")
+    timer = datetime.datetime.now()
 
     WND.mainloop()
+    timeEnd = round((datetime.datetime.now() - timer).total_seconds(),2)
+    seconds = timeEnd % 60
+    minutes = int(timeEnd // 60)# round((timeEnd % (60 * 60)) - seconds)
+    print("\nTime: %02d:%05.2f" % (minutes, seconds))
+    PlayAgain()
+    
 
 #----------------------------------------^-Main Window Code-^----------------------------------------------
 
 
 #----------------------------------------v-Global Variables-v----------------------------------------------
 
+emiIdle = ["Nice!","You got this!","I believe in you!",":)"]
 gameOver = False
-sprites = []
-emi = Emi([],Label)
-tiles = []
+sprites:Block = []
+emi = Emi([],Frame,StringVar,Label)
+tiles:Block = []
 diffLevels = [0.15, 0.2, 0.25]
 showFrame = None
 tileFrame = None
+emiFrame = None
 dimensions = {"x": SIZEX, "y": SIZEY}
 mineCount = round((dimensions["x"] * dimensions["y"]) * diffLevels[DIFFICULTY])
 safe = (dimensions["x"] * dimensions["y"]) - mineCount
 flagDisplay = None
 flagLabel = None
 totalFlags = None
-
+ 
 #----------------------------------------^-Global Variables-^----------------------------------------------
 
 
 #----------------------------------------v-----Interface----v----------------------------------------------
 
 def MakeInterface():
-    global showFrame,tileFrame,flagDisplay,flagLabel
+    global showFrame,tileFrame,flagDisplay,flagLabel,emi,sprites
+    
+    emi = Emi([],Frame(),StringVar(),Label())
+    emi.frame = Frame(WND)
+    emi.label = Label(emi.frame)
+    
+    emi.frame.pack()
 
     showFrame = Frame(WND)
     showFrame.pack()
@@ -58,14 +88,17 @@ def MakeInterface():
     flagDisplay = IntVar(value=mineCount,name="flags")
 
     totalFlags = Label(showFrame,text="Flags Remaining: ")
-    totalFlags.grid(row=2,column=1)
-    emi = Emi([],Label(showFrame))
+    totalFlags.grid(row=3,column=1)
     emi.label.grid(row=1,column=1)
+    emiSpeech = Label(emi.frame,textvariable=emi.speech)
+    emiSpeech.grid(row=2,column=1)
+    GetSprites()
     flagLabel = Label(showFrame,textvariable=flagDisplay)
-    flagLabel.grid(row=2,column=2)
+    flagLabel.grid(row=3,column=3)
     # Bind the required functions to the frame, which will be inherited by the tiles
-    tileFrame.bind_all("<Button-1>",open_init)
+    tileFrame.bind_all("<Button-1>",OpenInit)
     tileFrame.bind_all("<Button-3>",Flag)
+    emi.happy()
 
 #----------------------------------------^-----Interface----^----------------------------------------------
 
@@ -73,10 +106,12 @@ def MakeInterface():
 #--------------------------------------------v-Functions-v-------------------------------------------------
 
 # Run initialization for Open to get the coordinates, allowing FloodZero() to access Open without needing an event
-def open_init(evnt):
+def OpenInit(evnt):
     global flagDisplay
+    # print(evnt,evnt.widget)
     try:
-        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == ".!frame2":
+        # print(evnt.widget.winfo_parent(),tileFrame.winfo_name())
+        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == "."+tileFrame.winfo_name():
         # Separate the name of the label into its coordinates
             try:
                     tileName = int(evnt.widget._name.removeprefix('!label'))-1
@@ -95,7 +130,7 @@ def open_init(evnt):
 def Flag(evnt):
     # Separate the name of the label into its coordinates
     try:
-        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == ".!frame2":
+        if '!label' in evnt.widget._name and evnt.widget.winfo_parent() == "."+tileFrame.winfo_name():
         # Separate the name of the label into its coordinates
             try:
                 tileName = int(evnt.widget._name.removeprefix('!label'))-1
@@ -152,7 +187,7 @@ def CalculateNeighbors(x,y):
 
 # A flood fill command that opens all tiles surrounding a zero tile
 def FloodZero(x,y):
-
+    highestNeighbor = 0
     # Run as a 3x3 grid, getting the surrounding blocks recursively
     for i in range(3):
         for j in range(3):
@@ -166,23 +201,31 @@ def FloodZero(x,y):
                 target = tiles[targetx][targety]
                 
                 if targetx>-1 and targety>-1 and not target.open:
-                        Open(targetx,targety)
+                        opened = Open(targetx,targety)
+                        if opened > highestNeighbor:
+                            highestNeighbor = opened
             except IndexError:
                 # Prevents the fill from trying to go outside the bounds of the tiles
                 pass
             except RecursionError:
-                # If the foll hits infinite recursion anyway, just carry on
+                # If the fill hits infinite recursion anyway, just carry on
                 pass
+    return highestNeighbor
 
 #Define Open as a function separate to Block.OpenBlock() so that it can access FloodZero()
 def Open(x,y):
-    global flagDisplay,safe
+    global flagDisplay,safe,emi,emiIdle
+
+    flooded = 0
 
     # Get the tile by the provided coordinates and open it through Block.OpenBlock()
     tile = tiles[x][y]
+
+    closed = not tile.open
+
     if tile.flagged:
         flagDisplay.set(flagDisplay.get()+1)
-    if not tile.open:
+    if closed:
         safe-=1
 
     mine = tile.OpenBlock()
@@ -191,17 +234,38 @@ def Open(x,y):
     if mine:
         Disable()
         tile.label.configure(image=sprites[12])
-
-    # If a tile has zero neighbors that are mines, then the 8 tiles surrounding it must be safe
-    if tile.mineNeighbors == 0:
-
-        # So run FloodZero()
-        FloodZero(x,y)
+    
+    else:
+        # If a tile has zero neighbors that are mines, then the 8 tiles surrounding it must be safe
+        if tile.mineNeighbors == 0:
+            # So run FloodZero()
+            flooded = FloodZero(x,y)
+        if tile.mineNeighbors > flooded:
+            flooded = tile.mineNeighbors
+        
+        if closed:
+            if tile.mineNeighbors == 0:
+                emi.interest()
+                emi.speak("Ooh! A zero fill!")
+            elif flooded > 5:
+                emi.shock()
+                emi.speak("!!!")
+            elif flooded > 3:
+                emi.nervous()
+                emi.speak("Eek!")
+            else:
+                emi.happy()
+                if randint(1,100) <= 15:
+                    emi.speak(emiIdle[randint(0,len(emiIdle)-1)])
+                else:
+                    emi.speech.set("")
     CheckWin()
+
+    return flooded
 
 def CheckWin():
     global flagDisplay,safe
-    if (safe < 1 and flagDisplay.get() == 0):
+    if (safe <= 0 and flagDisplay.get() == 0):
         WinGame()
 
 def MakeTile(x,y):
@@ -221,6 +285,8 @@ def Disable():
     gameOver = True
 
     # Disable clicking for all the tiles by opening them
+    emi.dead()
+    emi.speak("*dies*")
     for column in tiles:
         for tile in column:
 
@@ -244,14 +310,13 @@ def AddMine():
         # NOTE: Could lead to a recursion bug if there are more mines than tiles
 
 def GetSprites():
-    for i in range(13): #There are 13 sprites for the buttons
+    for i in range(13): # There are 13 sprites for the buttons
 
         # Iteratively append the sprites to btnImg so that they can all be accessed easily
         sprites.append(PhotoImage(file=".\\assets\\button\\button_%02d.png" % i))
 
-    for i in range(4): #Emi has 4 sprites
+    for i in range(6): # We use 6 sprites for Emi
         emi.sprites.append(PhotoImage(file=".\\assets\\face\\emi_%d.png" % i))
-    emi.happy()
 
 def MakeGrid():
     # Iterate through the columns
@@ -285,8 +350,10 @@ def MakeGrid():
 
 def WinGame():
     print("Victory!")
+    emi.joy()
+    emi.speak("Woo! You did it!")
 
 
-
-# Start the main program loop
-main()
+if __name__ == "__main__":
+    # Start the main program loop
+    main()
